@@ -14,9 +14,9 @@ var DOMAIN_MANAGER = core.getInput('domain-manager')
 async function installServerlessAndPlugins() {
   await exeq(
     `echo Installing Serverless and plugins...`,
-    `npm i serverless -g`,
+    `npm i serverless@3.21.0  -g`,
     `npm i serverless-plugin-canary-deployments`,
-    `npm i serverless-python-requirements`
+    `npm i serverless-python-requirements@5.4.0`
   )
 }
 
@@ -34,11 +34,12 @@ async function runServerlessDeploy() {
       ]
     }
   */
-  let content = await fs.readFile(path, 'utf8')
-  var config = JSON.parse(content);
-  console.log("services-hashing.json " , config);
+  try {
+    let content = await fs.readFile(path, 'utf8')
+//     let content = fs.readFileSync(path, 'utf8')
+    var config = JSON.parse(content);
 
-    if (config.update_all == true){
+    if (config.update_all == true) {
       await exeq(
         `echo Running sls deploy...`,
         `if [ ${process.env.AWS_ACCESS_KEY_ID} ] && [ ${process.env.AWS_SECRET_ACCESS_KEY} ]; then
@@ -46,9 +47,9 @@ async function runServerlessDeploy() {
         fi`,
         `sls deploy --verbose`
       )
-    }else{
-       await exeq(`sls package`) 
-      config.services.forEach( async (service) => { 
+    } else {
+      await exeq(`sls package`)
+      config.services.forEach(async (service) => {
         await exeq(
           `echo Running sls deploy...`,
           `if [ ${process.env.AWS_ACCESS_KEY_ID} ] && [ ${process.env.AWS_SECRET_ACCESS_KEY} ]; then
@@ -58,6 +59,21 @@ async function runServerlessDeploy() {
         )
       });
     }
+
+  } catch (err) {
+    console.log("Kareem Error " , err );
+    await exeq(
+      `echo Running sls deploy...`,
+      `if [ ${process.env.AWS_ACCESS_KEY_ID} ] && [ ${process.env.AWS_SECRET_ACCESS_KEY} ]; then
+        sls config credentials --provider aws --key ${process.env.AWS_ACCESS_KEY_ID} --secret ${process.env.AWS_SECRET_ACCESS_KEY} --verbose
+      fi`,
+      `sls deploy --verbose`
+    )
+    
+    console.log("Kareem Error " , err );
+
+  }
+
 
 }
 
